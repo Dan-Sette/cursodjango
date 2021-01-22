@@ -1,6 +1,10 @@
 from django.db import models
+from django.dispatch import receiver
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.urls import reverse
+from django.utils.text import slugify
+from django.db.models.signals import post_save
 
 class PublishedManager(models.Manager):
     def get_queryset(self):
@@ -23,15 +27,30 @@ class Post(models.Model):
     status    = models.CharField(max_length=10, 
     choices=STATUS, default='rascunho')
 
-objects   = models.Manager()
-published = PublishedManager()
+    objects   = models.Manager()
+    published = PublishedManager()
 
-class Meta:
-    ordering = ('-publicado',)
+    def get_absolute_url(self):
+        return reverse('post_detail', args=[self.slug])
+
+    def get_absolute_url_update(self):
+        return reverse('post_edit', args=[self.pk])
+
+
+    class Meta:
+        ordering = ('-publicado',)
 
 
 
     def __str__(self):
         return self.titulo
+
+@receiver(post_save, sender=Post)
+def incert_slug(sender, instance, **kawargs):
+    if kawargs.get('created',False):
+        print('Criando slug')
+    if not instance.slug:
+        instance.slug = slugify(instance.titulo)
+        return instance.save()
 
 # Create your models here.
